@@ -34,7 +34,7 @@
   const githubLinks: Links = [
     { title: 'Mermaid JS', href: 'https://github.com/mermaid-js/mermaid' },
     {
-      title: 'Mermaid Live Editor',
+      title: 'Mermaid AI Editor',
       href: 'https://github.com/mermaid-js/mermaid-live-editor'
     },
     {
@@ -89,9 +89,8 @@
       class:flex-row-reverse={isReferral}>
       <a href="/" class="whitespace-nowrap text-accent">
         {#if !isReferral}
-          Mermaid
+          Mermaid AI Editor
         {/if}
-        Live Editor
       </a>
 
       <McWrapper labelPrefix="Opens the current diagram in">

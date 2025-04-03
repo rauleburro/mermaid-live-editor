@@ -1,6 +1,7 @@
 <script lang="ts">
   import McWrapper from '$/components/McWrapper.svelte';
   import MermaidChartIcon from '$/components/MermaidChartIcon.svelte';
+  import PromptInput from './PromptInput.svelte';
   import { Button } from '$/components/ui/button';
   import { TID } from '$/constants';
   import { env } from '$/util/env';
@@ -25,6 +26,7 @@
     overviewRulerLanes: 0
   };
   let currentText = '';
+  let isLoading = $state(false);
 
   const unsubscribeState = stateStore.subscribe(({ errorMarkers, editorMode, code, mermaid }) => {
     if (!editor) {
@@ -59,6 +61,55 @@
       updateCode(text);
     } else {
       updateConfig(text);
+    }
+  };
+
+  const handlePromptSubmit = async (event: CustomEvent<string>) => {
+    const userPrompt = event.detail;
+    if (!userPrompt.trim() || isLoading) return;
+
+    isLoading = true;
+    console.log('Sending to AI:');
+    console.log('Prompt:', userPrompt);
+    console.log('Current code:', currentText);
+
+    const fullPrompt = `You are an expert in Mermaid diagrams.
+The user wants to modify the following Mermaid code:
+
+\`\`\`mermaid
+${currentText}
+\`\`\`
+
+Based on this user request: "${userPrompt}"
+
+Generate the updated Mermaid code. Only return the raw Mermaid code, without any explanations or markdown formatting like \`\`\`mermaid.`;
+
+    try {
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ prompt: fullPrompt })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const generatedCode = await response.text();
+
+      console.log('AI Response:', generatedCode);
+
+      if (generatedCode) {
+        updateCode(generatedCode.trim());
+      } else {
+        console.error('Received empty response from AI');
+      }
+    } catch (error) {
+      console.error('Error calling AI API:', error);
+    } finally {
+      isLoading = false;
     }
   };
 
@@ -111,6 +162,7 @@
 </script>
 
 <div class="flex h-full flex-col pt-1">
+  <PromptInput on:submit={handlePromptSubmit} />
   <div bind:this={divElement} id="editor" class="h-full flex-grow overflow-hidden"></div>
   {#if $stateStore.error instanceof Error}
     <div class="flex flex-col text-sm" data-testid={TID.errorContainer}>
